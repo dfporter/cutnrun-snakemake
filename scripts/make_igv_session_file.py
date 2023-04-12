@@ -11,11 +11,7 @@ def make_igv_session_file(bigwigs_fnames, to_group_function, out_file_name="igv_
     
     color_table = {k: ','.join([str(int(255*x)) for x in mcolors.to_rgb(c)]) \
                    for k,c in mcolors.XKCD_COLORS.items() if k not in skip_colors}
-    
-    print(f"bigwigs: {fnames}\n\ngroups:{groups}\n\n")
-    print(f"to_group(fname1)={to_group(fnames[0])}")
-    
-    
+        
     colors_list = list(color_table.values())
     n_colors = len(list(color_table.values()))
     n_groups = len(groups)
@@ -23,8 +19,6 @@ def make_igv_session_file(bigwigs_fnames, to_group_function, out_file_name="igv_
 
     def to_color(fname):
         return colors_list[groups.index(to_group(fname)) % n_colors]
-
-    print(f"{n_groups} groups and {n_colors} colors: {groups}")
     
     header = """<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 
