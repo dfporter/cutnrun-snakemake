@@ -94,16 +94,17 @@ def get_target_files(wildcards):
     #     targets = targets + expand("samples/align-spikein/{sample}.spikein.bam.seqdepth", sample=SAMPLES.keys())
 
     targets = targets + expand("samples/align/{sample}.cleaned.fragmentsize.txt", sample = SAMPLES.keys())
-    targets = targets + ["samples/alignment_summary.csv"]
+    targets = targets + ["samples/alignment_summary.csv", "samples/igv_session.samples.xml"]
 
     targets = [os.path.join(OUTPUT_DIR, t) for t in targets]
+    
     return targets
 
 rule all:
     input: get_target_files
     run:
         print("workflow complete!")
-
+    
 
 def get_paired_fqs(wildcards):
     if (wildcards.sample not in SAMPLES.keys()):
@@ -339,7 +340,7 @@ rule call_seacr_peaks:
     resources:
         mem_mb = 8000
     shell:
-        "SEACR_1.3.sh {input} 0.01 non {wildcards.stringency} {params.prefix} &> {log}; "
+        "SEACR/SEACR_1.3.sh {input} 0.01 non {wildcards.stringency} {params.prefix} &> {log}; "
         "mv {params.tmp} {output}"
 
 
@@ -363,7 +364,7 @@ rule call_seacr_peaks_vs_control:
     resources:
         mem_mb = 8000
     shell:
-        "SEACR_1.3.sh {input.expt} {input.ctrl} non {wildcards.stringency} {params.prefix} &> {log}; "
+        "SEACR/SEACR_1.3.sh {input.expt} {input.ctrl} non {wildcards.stringency} {params.prefix} &> {log}; "
         "mv {params.tmp} {output}"
 
 
@@ -444,8 +445,6 @@ rule merge_control_spikeins:
 #     shell:
 
 
-
-
 rule sam_to_bam:
     input:
         "{directory}{filename}.sam"
@@ -454,9 +453,6 @@ rule sam_to_bam:
     threads: THREADS
     shell:
         "samtools view -b --threads {threads} -o {output} {input}"
-
-
-
 
     
 rule samtools_index:
@@ -467,3 +463,11 @@ rule samtools_index:
     threads: THREADS
     shell:
         "samtools index -@ {threads} {input}"
+
+rule make_igv_session_file:
+    input:
+        expand(OUTPUT_DIR + "samples/signal/{sample}.scaled.bigwig", sample=SAMPLES.keys())
+    output:
+        os.path.join(OUTPUT_DIR, "samples/igv_session.samples.xml")
+    shell:
+        f"python scripts/make_igv_session_file.py --signal_dir {OUTPUT_DIR}/samples/signal/ --samplesheet {config['samplesheet']}" + " --outfilename {output}"
